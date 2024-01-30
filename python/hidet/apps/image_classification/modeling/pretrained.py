@@ -1,0 +1,44 @@
+from typing import Optional
+import hidet
+from hidet.testing.models.llama import copy_weights
+
+import torch
+
+from transformers import (
+    PretrainedConfig,
+    AutoModelForImageClassification,
+    PreTrainedModel as TransformersPretrainedModel,
+)
+from hidet.apps.pretrained import PretrainedModel
+
+from datasets import load_dataset
+from transformers import AutoImageProcessor
+
+class PretrainedModelForImageClassification(PretrainedModel):
+    @classmethod
+    def create_pretrained_model(
+        cls, config: PretrainedConfig, revision: Optional[str] = None, dtype: Optional[str] = None, device: str = "cuda"
+    ):
+        # dynamically load model subclass
+        pretrained_model_class = cls.load_model_class(config)
+
+        # load the pretrained huggingface model into cpu
+        with torch.device("cuda"):  # reduce the time to load the model
+            huggingface_token = hidet.option.get_option("auth_tokens.for_huggingface")
+            torch_model: TransformersPretrainedModel = AutoModelForImageClassification.from_pretrained(
+                pretrained_model_name_or_path=config.name_or_path,
+                torch_dtype=torch.float32,
+                revision=revision,
+                token=huggingface_token,
+            )
+
+        torch_model = torch_model.cpu()
+        torch.cuda.empty_cache()
+
+        dtype = cls.parse_dtype(config)
+        hidet_model = pretrained_model_class(config)
+        hidet_model.to(dtype=dtype, device=device)
+
+        cls.copy_weights(torch_model, hidet_model)
+
+        return hidet_model
