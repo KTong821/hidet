@@ -1,9 +1,11 @@
+from dataclasses import asdict
 from typing import List, Sequence
 from attr import dataclass
 from hidet.apps.image_classification.modeling.pretrained import (
     PretrainedModelForImageClassification,
 )
 from hidet.apps import ModelRegistryEntry, PretrainedModel
+from hidet.apps.modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling, ImageClassifierOutput
 from hidet.graph import nn
 from hidet.graph.tensor import Tensor
 from transformers import ResNetConfig
@@ -21,7 +23,7 @@ PretrainedModel.register_model(
 # with minor API changes
 
 
-class ResNetConvLayer(nn.Module):
+class ResNetConvLayer(nn.Module[Tensor]):
     def __init__(
         self,
         in_channels: int,
@@ -50,7 +52,7 @@ class ResNetConvLayer(nn.Module):
         return hidden_state
 
 
-class ResNetEmbeddings(nn.Module):
+class ResNetEmbeddings(nn.Module[Tensor]):
     """
     ResNet Embeddings (stem) composed of a single aggressive convolution.
     """
@@ -74,7 +76,7 @@ class ResNetEmbeddings(nn.Module):
         return embedding
 
 
-class ResNetShortCut(nn.Module):
+class ResNetShortCut(nn.Module[Tensor]):
     """
     ResNet shortcut, used to project the residual features to the correct size. If needed, it is also used to
     downsample the input using `stride=2`.
@@ -93,7 +95,7 @@ class ResNetShortCut(nn.Module):
         return hidden_state
 
 
-class ResNetBottleNeckLayer(nn.Module):
+class ResNetBottleNeckLayer(nn.Module[Tensor]):
     """
     A classic ResNet's bottleneck layer composed by three `3x3` convolutions.
 
@@ -126,7 +128,7 @@ class ResNetBottleNeckLayer(nn.Module):
         self.layer = nn.Sequential(layer)
         self.activation = nn.Relu()
 
-    def forward(self, hidden_state):
+    def forward(self, hidden_state: Tensor) -> Tensor:
         residual = hidden_state
         hidden_state = self.layer(hidden_state)
         if self.should_apply_shortcut:
@@ -136,7 +138,7 @@ class ResNetBottleNeckLayer(nn.Module):
         return hidden_state
 
 
-class ResNetStage(nn.Module):
+class ResNetStage(nn.Module[Tensor]):
     """
     A ResNet stage composed by stacked layers.
     """
@@ -179,13 +181,8 @@ class ResNetStage(nn.Module):
         return self.layers.forward(x)
 
 
-@dataclass
-class ResNetEncoderOutput:
-    last_hidden_state: Tensor
-    hidden_states: List[Tensor]
 
-
-class ResNetEncoder(nn.Module):
+class ResNetEncoder(nn.Module[BaseModelOutput]):
     def __init__(self, config: ResNetConfig):
         super().__init__()
         stages = [
@@ -207,7 +204,7 @@ class ResNetEncoder(nn.Module):
 
         self.stages: nn.ModuleList = nn.ModuleList(stages)
 
-    def forward(self, hidden_state: Tensor) -> ResNetEncoderOutput:
+    def forward(self, hidden_state: Tensor) -> BaseModelOutput:
         hidden_states = [hidden_state]
 
         for stage_module in self.stages:
@@ -215,7 +212,7 @@ class ResNetEncoder(nn.Module):
                 hidden_state = stage_module(hidden_state)
                 hidden_states.append(hidden_state)
 
-        return ResNetEncoderOutput(last_hidden_state=hidden_state, hidden_states=hidden_states)
+        return BaseModelOutput(last_hidden_state=hidden_state, hidden_states=hidden_states)
     
 class ResNetClassifier(nn.Sequential):
 
@@ -240,7 +237,7 @@ class ResNetClassifier(nn.Sequential):
             self.__setattr__(str(idx), module)
 
 
-class ResNetModel(nn.Module):
+class ResNetModel(nn.Module[BaseModelOutputWithPooling]):
     def __init__(self, config: ResNetConfig):
         super().__init__()
         self.config = config
@@ -248,7 +245,13 @@ class ResNetModel(nn.Module):
         self.encoder = ResNetEncoder(config)
         self.pooler = nn.AdaptiveAvgPool2d((1, 1))
 
-    
+    def forward(self, input_images: Tensor) -> BaseModelOutputWithPooling:
+        embedding_output = self.embedder(input_images)
+        encoder_outputs: BaseModelOutput = self.encoder(embedding_output)
+
+        pooled_output = self.pooler(encoder_outputs.last_hidden_state)
+
+        return BaseModelOutputWithPooling(**asdict(encoder_outputs), pooler_output=pooled_output)
 
 
 class ResNetForImageClassification(PretrainedModelForImageClassification):
@@ -260,7 +263,10 @@ class ResNetForImageClassification(PretrainedModelForImageClassification):
         # classification head
         self.classifier = ResNetClassifier(config)
 
-    def forward(self, input_images: Tensor):
-        return self.resnet(input_images)
+    def forward(self, input_images: Tensor) -> ImageClassifierOutput:
+        outputs: BaseModelOutputWithPooling = self.resnet(input_images)
         
+        logits = self.classifier(outputs.pooler_output)
+
+        return ImageClassifierOutput(**asdict(outputs), logits=logits)
 

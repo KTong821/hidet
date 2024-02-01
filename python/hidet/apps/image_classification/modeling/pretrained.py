@@ -1,6 +1,6 @@
 from typing import Optional
 import hidet
-from hidet.testing.models.llama import copy_weights
+from hidet.apps.modeling_outputs import ImageClassifierOutput
 
 import torch
 
@@ -11,10 +11,8 @@ from transformers import (
 )
 from hidet.apps.pretrained import PretrainedModel
 
-from datasets import load_dataset
-from transformers import AutoImageProcessor
 
-class PretrainedModelForImageClassification(PretrainedModel):
+class PretrainedModelForImageClassification(PretrainedModel[ImageClassifierOutput]):
     @classmethod
     def create_pretrained_model(
         cls, config: PretrainedConfig, revision: Optional[str] = None, dtype: Optional[str] = None, device: str = "cuda"

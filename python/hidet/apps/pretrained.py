@@ -1,9 +1,10 @@
 import importlib
 from dataclasses import astuple, dataclass
-from typing import Dict, List, Set, Type
+from typing import Dict, Generic, List, Set, Type, TypeVar
 
 import torch
 from hidet.graph import Tensor, nn
+from hidet.graph.nn.module import R
 from transformers import PretrainedConfig
 
 import hidet
@@ -41,7 +42,7 @@ class ModelRegistryEntry:
         self.model_class = model_class
 
 
-class PretrainedModel(nn.Module):
+class PretrainedModel(nn.Module[R], Generic[R]):
     model_registry: Dict[str, ModelRegistryEntry] = {}
 
     def __init__(self, config: PretrainedConfig):
@@ -55,9 +56,8 @@ class PretrainedModel(nn.Module):
     def copy_weights(cls, torch_model: torch.nn.Module, hidet_model: nn.Module):
         found_tensors: List[Tensor] = []
         for name, tensor in torch_model.named_parameters():
-            print(name)
             member = hidet_model
-            for m_name in name.split('.'):
+            for m_name in name.split("."):
                 member = getattr(member, m_name)
 
             if not isinstance(member, Tensor):
@@ -69,14 +69,18 @@ class PretrainedModel(nn.Module):
 
             src = hidet.from_torch(tensor).to(member.dtype, member.device)
             if src.shape != member.shape:
-                raise ValueError(f"Parameter {name} shape mismatch, hidet: {member.shape}, torch: {src.shape}")
+                raise ValueError(
+                    f"Parameter {name} shape mismatch, hidet: {member.shape}, torch: {src.shape}"
+                )
             found_tensors.append(member)
             member.copy_(src)
 
         buffer_names: Set[str] = set(name for name, _ in torch_model.named_buffers())
         for name, tensor in hidet_model.named_parameters():
             if tensor not in found_tensors and name not in buffer_names:
-                raise ValueError(f'Parameter {name} in hidet model does not find equivalent in PyTorch model.')
+                raise ValueError(
+                    f"Parameter {name} in hidet model does not find equivalent in PyTorch model."
+                )
 
     @classmethod
     def load_model_class(cls, config: PretrainedConfig) -> Type["PretrainedModel"]:
@@ -92,10 +96,16 @@ class PretrainedModel(nn.Module):
                 f"Registered architectures: {', '.join(cls.model_registry.keys())}."
             )
 
-        model_category, model_name, model_class = astuple(cls.model_registry[architecture])
-        module = importlib.import_module(f"hidet.apps.{model_category}.modeling.{model_name}")
+        model_category, model_name, model_class = astuple(
+            cls.model_registry[architecture]
+        )
+        module = importlib.import_module(
+            f"hidet.apps.{model_category}.modeling.{model_name}"
+        )
         if model_class not in dir(module):
-            raise KeyError(f"No model class named {model_class} found in module {module}.")
+            raise KeyError(
+                f"No model class named {model_class} found in module {module}."
+            )
 
         return getattr(module, model_class)
 
