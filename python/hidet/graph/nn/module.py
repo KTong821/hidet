@@ -10,14 +10,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-from typing import Optional, Sequence, Iterator, Dict, Any
+from typing import Optional, Sequence, Iterator, Dict, Any, Generic, TypeVar
 from collections import OrderedDict
 from hidet.graph.tensor import symbol_like
 from hidet.graph.flow_graph import FlowGraph, trace_from
 from hidet.graph.tensor import Tensor
 
+# forward method return type
+R = TypeVar('R')
 
-class Module:
+class Module(Generic[R]):
     def __init__(self):
         self.name = None
         self._parameters: OrderedDict[str, Optional[Tensor]] = OrderedDict()
@@ -70,7 +72,7 @@ class Module:
             lines = [' ' * indent + line for line in lines]
             return '{}(\n{}\n)'.format(name, '\n'.join(lines))
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> R:
         return self.forward(*args, **kwargs)
 
     def state_dict(self) -> Dict[str, Any]:
@@ -81,12 +83,12 @@ class Module:
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
         for name, parameter in self.named_parameters():
-            parameter.copy_(state_dict[name])
+            parameter.copy(state_dict[name])
 
     def extra_str(self) -> str:
         return ''
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> R:
         raise NotImplementedError()
 
     def parameters(self, recursive: bool = True) -> Iterator[Tensor]:
