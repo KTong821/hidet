@@ -1,15 +1,12 @@
 from typing import Optional
-import hidet
-from hidet.apps.modeling_outputs import ImageClassifierOutput
 
 import torch
-
-from transformers import (
-    PretrainedConfig,
-    AutoModelForImageClassification,
-    PreTrainedModel as TransformersPretrainedModel,
-)
+from hidet.apps.modeling_outputs import ImageClassifierOutput
 from hidet.apps.pretrained import PretrainedModel
+from transformers import AutoModelForImageClassification, PretrainedConfig
+from transformers import PreTrainedModel as TransformersPretrainedModel
+
+import hidet
 
 
 class PretrainedModelForImageClassification(PretrainedModel[ImageClassifierOutput]):
@@ -18,7 +15,7 @@ class PretrainedModelForImageClassification(PretrainedModel[ImageClassifierOutpu
         cls, config: PretrainedConfig, revision: Optional[str] = None, dtype: Optional[str] = None, device: str = "cuda"
     ):
         # dynamically load model subclass
-        pretrained_model_class = cls.load_model_class(config)
+        pretrained_model_class = cls.load_module(config)
 
         # load the pretrained huggingface model into cpu
         with torch.device("cuda"):  # reduce the time to load the model

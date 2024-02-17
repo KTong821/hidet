@@ -1,21 +1,24 @@
 from dataclasses import asdict
-from typing import List, Sequence
-from attr import dataclass
-from hidet.apps.image_classification.modeling.pretrained import (
-    PretrainedModelForImageClassification,
-)
-from hidet.apps import ModelRegistryEntry, PretrainedModel
-from hidet.apps.modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling, ImageClassifierOutput
+from typing import Sequence
+
+from hidet.apps import PretrainedModel
+from hidet.apps.image_classification.modeling.pretrained import \
+    PretrainedModelForImageClassification
+from hidet.apps.modeling_outputs import (BaseModelOutput,
+                                         BaseModelOutputWithPooling,
+                                         ImageClassifierOutput)
+from hidet.apps.registry import ModuleType, RegistryEntry
 from hidet.graph import nn
 from hidet.graph.tensor import Tensor
 from transformers import ResNetConfig
 
-PretrainedModel.register_model(
+PretrainedModel.register(
+    module_type=ModuleType.MODEL,
     arch="ResNetForImageClassification",
-    entry=ModelRegistryEntry(
+    entry=RegistryEntry(
         model_category="image_classification",
-        model_name="resnet",
-        model_class="ResNetForImageClassification",
+        module_name="resnet",
+        klass="ResNetForImageClassification",
     ),
 )
 

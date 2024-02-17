@@ -15,6 +15,7 @@ pylint==2.13.9
 torch
 torchvision
 transformers
+datasets
 sentencepiece
 sacremoses
 

@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from dataclasses import dataclass, fields, is_dataclass
-from hidet.graph import Tensor
-
 from typing import Any, List, Optional, Tuple
+
+from hidet.graph import Tensor
 
 
 class ModelOutput(OrderedDict):
@@ -18,7 +18,7 @@ class ModelOutput(OrderedDict):
         """
         Called by dataclasses after initialization of dataclass values.
 
-        Use here to enable dict-like access
+        Here to enable dict-like access
         """
 
         class_fields = fields(self) # type: ignore
