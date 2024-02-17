@@ -46,15 +46,15 @@ def create_image_classifier(
         )
     )
 
-# def create_image_processor(
-#     name: str,
-#     revision: Optional[str] = None,
-#     **kwargs
-# ) -> BaseProcessor:
-#     # load the huggingface config according to (model, revision) pair
-#     config: PretrainedConfig = hf.load_pretrained_config(name, revision=revision)
+def create_image_processor(
+    name: str,
+    revision: Optional[str] = None,
+    **kwargs
+) -> BaseProcessor:
+    # load the huggingface config according to (model, revision) pair
+    config: PretrainedConfig = hf.load_pretrained_config(name, revision=revision)
 
-#     processor = BaseImageProcessor.load_module(config, module_type=ModuleType.PROCESSING)
+    processor = BaseImageProcessor.load_module(config, module_type=ModuleType.PROCESSING)
 
-#     return processor(**kwargs)
+    return processor(**kwargs)
 
