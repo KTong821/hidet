@@ -1,6 +1,8 @@
 from typing import Optional
+
+from transformers import AutoConfig, PretrainedConfig
+
 import hidet
-from transformers import PretrainedConfig, AutoConfig
 
 
 def load_pretrained_config(model: str, revision: Optional[str] = None) -> PretrainedConfig:

@@ -10,4 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .pretrained import PretrainedModel, ModelRegistryEntry
+from .pretrained import PretrainedModel
+# from .pipeline import Pipeline
+from .registry import Registry, RegistryEntry
+
+# from .processing import BaseProcessor
