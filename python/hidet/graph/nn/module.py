@@ -83,7 +83,7 @@ class Module(Generic[R]):
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
         for name, parameter in self.named_parameters():
-            parameter.copy(state_dict[name])
+            parameter.copy_(state_dict[name])
 
     def extra_str(self) -> str:
         return ''
