@@ -34,22 +34,7 @@ class Pipeline:
         assert isinstance(model_inputs, Sequence)
 
         processed_inputs = self.preprocess(model_inputs, **kwargs)
-
         model_outputs = self.forward(processed_inputs, **kwargs)
         outputs = self.postprocess(model_outputs, **kwargs)
 
         return outputs
-
-        # for i in tqdm(range(0, len(model_inputs), batch_size)):
-        #     batch = processed_inputs[i:i+batch_size]
-        #     model_outputs = self.forward(batch, **kwargs)
-        #     outputs = self.postprocess(model_outputs, **kwargs)
-        #     yield outputs
-            # yield self.run(model_inputs[i:i+batch_size], **kwargs)
-        
-
-    # def run(self, model_inputs: Any, **kwargs):
-    #     model_inputs = self.preprocess(model_inputs, **kwargs)
-    #     model_outputs = self.forward(model_inputs, **kwargs)
-    #     outputs = self.postprocess(model_outputs, **kwargs)
-    #     return outputs
