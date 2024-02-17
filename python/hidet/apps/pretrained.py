@@ -1,10 +1,10 @@
 from typing import Generic, List, Set
-from hidet.apps.registry import Registry
-from hidet.graph.tensor import from_torch
 
 import torch
+from hidet.apps.registry import Registry
 from hidet.graph import Tensor, nn
 from hidet.graph.nn.module import R
+from hidet.graph.tensor import from_torch
 from transformers import PretrainedConfig
 
 
