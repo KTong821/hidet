@@ -28,6 +28,7 @@ class ResNetConvLayer(nn.Module[Tensor]):
         super().__init__()
         self.convolution = nn.Conv2d(
             in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=kernel_size // 2
+
         )
         self.normalization = nn.BatchNorm2d(out_channels)
         self.apply_activation = activation
@@ -139,7 +140,6 @@ class ResNetStage(nn.Module[Tensor]):
     def forward(self, x: Tensor) -> Tensor:
         return self.layers.forward(x)
 
-
 class ResNetEncoder(nn.Module[BaseModelOutput]):
     def __init__(self, config: ResNetConfig):
         super().__init__()
@@ -169,7 +169,6 @@ class ResNetEncoder(nn.Module[BaseModelOutput]):
                 hidden_states.append(hidden_state)
 
         return BaseModelOutput(last_hidden_state=hidden_state, hidden_states=hidden_states)
-
 
 class ResNetClassifier(nn.Sequential):
     class Flatten(nn.Module):
@@ -221,3 +220,4 @@ class ResNetForImageClassification(PretrainedModelForImageClassification):
         logits = self.classifier(outputs.pooler_output)
 
         return ImageClassifierOutput(**asdict(outputs), logits=logits)
+

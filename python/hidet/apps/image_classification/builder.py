@@ -4,6 +4,7 @@ from hidet.apps import hf
 from hidet.apps.image_classification.app import ResNet
 from hidet.apps.image_classification.modeling.pretrained import PretrainedModelForImageClassification
 from hidet.apps.image_classification.processing.image_processor import BaseImageProcessor
+
 from hidet.apps.modeling_outputs import ImageClassifierOutput
 from hidet.apps.processing import BaseProcessor
 from hidet.apps.registry import ModuleType
@@ -48,4 +49,8 @@ def create_image_processor(name: str, revision: Optional[str] = None, **kwargs) 
 
     processor = BaseImageProcessor.load_module(config, module_type=ModuleType.PROCESSING)
 
-    return processor(**kwargs)
+    return ResNet(
+        compiled_app=create_compiled_app(
+            graphs={"resnet": compiled_graph}, name=name
+        )
+    )

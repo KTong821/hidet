@@ -7,6 +7,7 @@ from hidet.option import get_option
 from transformers import AutoModelForImageClassification, PretrainedConfig, ResNetConfig
 
 
+
 @pytest.mark.parametrize(
     "model_name, dtype",
     [
@@ -50,7 +51,6 @@ def test_copy_weights():
         for weight in weight_set:
             weight = weight.torch()
             assert not torch.equal(weight, torch.zeros_like(weight))
-
 
 if __name__ == "__main__":
     pytest.main([__file__])

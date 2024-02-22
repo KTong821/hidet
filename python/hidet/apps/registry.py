@@ -43,11 +43,9 @@ class RegistryEntry:
         self.module_name = module_name
         self.klass = klass
 
-
 class ModuleType(Enum):
     MODEL = "modeling"
     PROCESSING = "processing"
-
 
 class Registry:
     module_registry: Dict[ModuleType, Dict[str, RegistryEntry]] = defaultdict(dict)

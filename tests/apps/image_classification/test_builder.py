@@ -3,6 +3,7 @@ import pytest
 import torch
 from datasets import load_dataset
 from hidet.apps.image_classification.builder import create_image_classifier, create_image_processor
+
 from hidet.graph.tensor import from_torch
 from transformers import AutoImageProcessor
 

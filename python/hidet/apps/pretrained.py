@@ -34,6 +34,7 @@ class PretrainedModel(nn.Module[R], Registry, Generic[R]):
             src = from_torch(tensor).to(member.dtype, member.device)
             if src.shape != member.shape:
                 raise ValueError(f"Parameter {name} shape mismatch, hidet: {member.shape}, torch: {src.shape}")
+
             found_tensors.append(member)
             member.copy_(src)
 
@@ -41,6 +42,7 @@ class PretrainedModel(nn.Module[R], Registry, Generic[R]):
         for name, tensor in hidet_model.named_parameters():
             if tensor not in found_tensors and name not in buffer_names:
                 raise ValueError(f"Parameter {name} in hidet model does not find equivalent in PyTorch model.")
+
 
     @classmethod
     def parse_dtype(cls, config: PretrainedConfig, default: str = "float16"):
