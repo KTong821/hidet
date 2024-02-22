@@ -1,7 +1,6 @@
 import pytest
 from hidet.apps import Registry, hf
-from hidet.apps.image_classification.modeling.resnet.modeling import \
-    ResNetForImageClassification
+from hidet.apps.image_classification.modeling.resnet.modeling import ResNetForImageClassification
 from transformers import PretrainedConfig
 
 

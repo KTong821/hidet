@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass, fields, is_dataclass
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 from hidet.graph import Tensor
 
@@ -10,10 +10,8 @@ class ModelOutput(OrderedDict):
         super().__init__(*args, **kwargs)
 
         if self.__class__ != ModelOutput and not is_dataclass(self):
-            raise TypeError(
-                f"{self.__module__}.{self.__class__} must be a dataclass to inherit from ModelOutput."
-            )
-        
+            raise TypeError(f"{self.__module__}.{self.__class__} must be a dataclass to inherit from ModelOutput.")
+
     def __post_init__(self):
         """
         Called by dataclasses after initialization of dataclass values.
@@ -21,10 +19,10 @@ class ModelOutput(OrderedDict):
         Here to enable dict-like access
         """
 
-        class_fields = fields(self) # type: ignore
+        class_fields = fields(self)  # type: ignore
         if not len(class_fields):
             raise ValueError(f"{self.__class__.__name__} has no fields.")
-        
+
         for field in class_fields:
             v = getattr(self, field.name)
             if v is not None:
@@ -36,7 +34,7 @@ class ModelOutput(OrderedDict):
             return inner_dict[k]
         else:
             return self.to_tuple()[k]
-        
+
     def __setattr__(self, name, value):
         if name in self.keys() and value is not None:
             super().__setitem__(name, value)
@@ -46,17 +44,15 @@ class ModelOutput(OrderedDict):
         super().__setitem__(key, value)
         super().__setattr__(key, value)
 
-        
-
     def to_tuple(self) -> Tuple[Any, ...]:
         return tuple(self[k] for k in self.keys())
-
 
 
 @dataclass
 class BaseModelOutput(ModelOutput):
     last_hidden_state: Tensor
     hidden_states: List[Tensor]
+
 
 @dataclass
 class BaseModelOutputWithPooling(BaseModelOutput):

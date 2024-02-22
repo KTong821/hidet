@@ -1,14 +1,10 @@
-
-
 from typing import Any, Iterable, Optional, Sequence
 
 from hidet.apps.processing import BaseProcessor
 from hidet.graph.tensor import Tensor
-from tqdm import tqdm
 
 
 class Pipeline:
-
     def __init__(self, name: str, revision: Optional[str], pre_processor: BaseProcessor):
         self.name = name
         self.revision = revision
@@ -16,13 +12,13 @@ class Pipeline:
 
     def preprocess(self, model_inputs: Any, **kwargs):
         raise NotImplementedError("Pipeline subclasses should implement their own preprocess step.")
-    
+
     def postprocess(self, model_outputs: Tensor, **kwargs):
         raise NotImplementedError("Pipeline subclasses should implement their own postprocess step.")
 
     def forward(self, model_inputs: Tensor, **kwargs):
         raise NotImplementedError("Pipeline subclasses should implement their own forward step.")
-    
+
     def __call__(self, model_inputs: Any, batch_size: int = 1, **kwargs):
         # TODO take iterable model_input
 

@@ -1,11 +1,9 @@
-from typing import List, Optional
+from typing import Optional
 
 from hidet.apps import hf
 from hidet.apps.image_classification.app import ResNet
-from hidet.apps.image_classification.modeling.pretrained import \
-    PretrainedModelForImageClassification
-from hidet.apps.image_classification.processing.image_processor import (
-    BaseImageProcessor, ChannelDimension)
+from hidet.apps.image_classification.modeling.pretrained import PretrainedModelForImageClassification
+from hidet.apps.image_classification.processing.image_processor import BaseImageProcessor
 from hidet.apps.modeling_outputs import ImageClassifierOutput
 from hidet.apps.processing import BaseProcessor
 from hidet.apps.registry import ModuleType
@@ -23,6 +21,7 @@ def create_image_classifier(
     revision: Optional[str] = None,
     dtype: str = "float32",
     device: str = "cuda",
+    batch_size: int = 1,
     kernel_search_space: int = 2,
 ):
     # load the huggingface config according to (model, revision) pair
@@ -32,7 +31,7 @@ def create_image_classifier(
     model = PretrainedModelForImageClassification.create_pretrained_model(
         config, revision=revision, dtype=dtype, device=device
     )
-    inputs: Tensor = symbol(["bs", 3, 224, 224], dtype=dtype, device=device)
+    inputs: Tensor = symbol([batch_size, 3, 224, 224], dtype=dtype, device=device)
     outputs: ImageClassifierOutput = model.forward(inputs)
     graph: FlowGraph = trace_from(outputs.logits, inputs)
 
@@ -40,21 +39,13 @@ def create_image_classifier(
 
     compiled_graph = graph.build(space=kernel_search_space)
 
-    return ResNet(
-        compiled_app=create_compiled_app(
-            graphs={"resnet": compiled_graph}, name=name
-        )
-    )
+    return ResNet(compiled_app=create_compiled_app(graphs={"resnet": compiled_graph}, name=name))
 
-def create_image_processor(
-    name: str,
-    revision: Optional[str] = None,
-    **kwargs
-) -> BaseProcessor:
+
+def create_image_processor(name: str, revision: Optional[str] = None, **kwargs) -> BaseProcessor:
     # load the huggingface config according to (model, revision) pair
     config: PretrainedConfig = hf.load_pretrained_config(name, revision=revision)
 
     processor = BaseImageProcessor.load_module(config, module_type=ModuleType.PROCESSING)
 
     return processor(**kwargs)
-

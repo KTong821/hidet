@@ -1,12 +1,10 @@
 import pytest
 import torch
 from hidet.apps import PretrainedModel, hf
-from hidet.apps.image_classification.modeling.resnet.modeling import \
-    ResNetForImageClassification
+from hidet.apps.image_classification.modeling.resnet.modeling import ResNetForImageClassification
 from hidet.graph.tensor import empty
 from hidet.option import get_option
-from transformers import (AutoModelForImageClassification, PretrainedConfig,
-                          ResNetConfig)
+from transformers import AutoModelForImageClassification, PretrainedConfig, ResNetConfig
 
 
 @pytest.mark.parametrize(
@@ -28,28 +26,30 @@ def test_copy_weights():
         huggingface_token = get_option("auth_tokens.for_huggingface")
 
         torch_model = AutoModelForImageClassification.from_pretrained(
-            pretrained_model_name_or_path=config.name_or_path,
-            torch_dtype=torch.float32,
-            token=huggingface_token,
+            pretrained_model_name_or_path=config.name_or_path, torch_dtype=torch.float32, token=huggingface_token
         )
         hidet_model = ResNetForImageClassification(config)
         hidet_model.to(dtype="float32", device="cuda")
         PretrainedModel.copy_weights(torch_model, hidet_model)
 
-        normalization_stage = hidet_model.resnet.encoder.stages._submodules["0"].layers._submodules["0"].layer._submodules["0"].normalization
+        normalization_stage = (
+            hidet_model.resnet.encoder.stages._submodules["0"]
+            .layers._submodules["0"]
+            .layer._submodules["0"]
+            .normalization
+        )
         weight_set = [
             normalization_stage.weight,
             normalization_stage.bias,
             normalization_stage.running_mean,
             normalization_stage.running_var,
             hidet_model.classifier._submodules["1"].weight,
-            hidet_model.resnet.embedder.embedder.convolution.weight
+            hidet_model.resnet.embedder.embedder.convolution.weight,
         ]
 
         for weight in weight_set:
             weight = weight.torch()
             assert not torch.equal(weight, torch.zeros_like(weight))
-
 
 
 if __name__ == "__main__":

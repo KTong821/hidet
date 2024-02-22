@@ -28,7 +28,7 @@ class Expr(Node):
     def __bool__(self):
         raise TypeError(
             "hidet.ir.Expr does not support pythonic logical operations (e.g., and, or, not, if(...)). "
-            "Please use hidet.ir.if_then_else, hidet.ir.logical_and, hidet.ir.logical_or, hidet.ir.logical_or "
+            "Please use hidet.ir.if_then_else, hidet.ir.logical_and, hidet.ir.logical_or, hidet.ir.logical_not "
             "explicitly."
         )
 

@@ -20,6 +20,7 @@ from hidet.runtime.compiled_module import CompiledModule, CompiledFunction, load
 from hidet.ir.dtypes import i32
 from hidet.ffi import runtime_api
 from hidet.ffi.utils import Array
+from tqdm import tqdm
 
 
 @dataclass
@@ -72,12 +73,12 @@ class CompiledTask:
         self.meta_data: TaskMetaData = self._load_meta_data()
         self.task_module: CompiledModule = load_compiled_module(task_dir)
         self.candidates: List[CompiledFunction] = [
-            self.task_module['launch_{}'.format(i)] for i in range(self.meta_data.num_candidates)
+            self.task_module["launch_{}".format(i)] for i in range(self.meta_data.num_candidates)
         ]
         self.dispatch_table: Dict[Tuple[int, ...], int] = self._load_dispatch_table()
 
-        self._get_input_shape = self.task_module['get_input_shape']
-        self._get_output_shape = self.task_module['get_output_shape']
+        self._get_input_shape = self.task_module["get_input_shape"]
+        self._get_output_shape = self.task_module["get_output_shape"]
 
     def __call__(self, *args):
         """
@@ -103,29 +104,29 @@ class CompiledTask:
     def _load_meta_data(self) -> TaskMetaData:
         from hidet.utils.dataclass import from_dict
 
-        meta_data_path = os.path.join(self.task_dir, 'meta.json')
-        with open(meta_data_path, 'r') as f:
+        meta_data_path = os.path.join(self.task_dir, "meta.json")
+        with open(meta_data_path, "r") as f:
             return from_dict(TaskMetaData, json.load(f))
 
     def _load_compiled_modules(self) -> List[CompiledModule]:
         compiled_modules = []
-        candidates_dir = os.path.join(self.task_dir, 'candidates')
+        candidates_dir = os.path.join(self.task_dir, "candidates")
         if not os.path.exists(candidates_dir) or not os.path.isdir(candidates_dir):
-            raise RuntimeError(f'Cannot find candidates dir: {candidates_dir}')
+            raise RuntimeError(f"Cannot find candidates dir: {candidates_dir}")
         for module_dir in os.listdir(candidates_dir):
             if not os.path.isdir(module_dir):
                 continue
             compiled_modules.append(CompiledModule(module_dir))
         if len(compiled_modules) == 0:
-            raise RuntimeError(f'No compiled module found in {candidates_dir}')
+            raise RuntimeError(f"No compiled module found in {candidates_dir}")
         return compiled_modules
 
     def _load_dispatch_table(self):
-        dispatch_table_path = os.path.join(self.task_dir, 'dispatch_table.txt')
+        dispatch_table_path = os.path.join(self.task_dir, "dispatch_table.txt")
         if not os.path.exists(dispatch_table_path):
             return {}
         dispatch_table = {}
-        with open(dispatch_table_path, 'r') as f:
+        with open(dispatch_table_path, "r") as f:
             for i, line in enumerate(f.readlines()):
                 if i == 0:
                     continue
@@ -134,7 +135,7 @@ class CompiledTask:
                     continue
                 if len(items) != len(self.meta_data.symbols) + 1:
                     os.remove(dispatch_table_path)
-                    raise RuntimeError(f'Invalid dispatch table: {dispatch_table_path}')
+                    raise RuntimeError(f"Invalid dispatch table: {dispatch_table_path}")
                 key = tuple(int(item) for item in items[:-1])
                 value = int(items[-1])
                 dispatch_table[key] = value
@@ -172,7 +173,7 @@ class CompiledTask:
             if len(self.candidates) > 1:
                 warmup, number, repeat = hidet.option.get_bench_config()
                 latencies = []
-                for idx, candidate in enumerate(self.candidates):
+                for idx, candidate in tqdm(enumerate(self.candidates), desc=self.meta_data.name):
                     for _ in range(warmup):
                         candidate(*inputs, *outputs)
                     candidate_latency = 0.0
@@ -188,35 +189,35 @@ class CompiledTask:
                 self.dispatch_table[key] = latencies.index(min(latencies))
 
                 # write a benchmark report
-                report_name = '_'.join('{}_{}'.format(a, b) for a, b in zip(self.meta_data.symbols, key))
-                os.makedirs(os.path.join(self.task_dir, 'reports'), exist_ok=True)
-                report_path = os.path.join(self.task_dir, 'reports', report_name + '.txt')
-                with open(os.path.join(self.task_dir, 'candidates.json'), 'r') as f:
+                report_name = "_".join("{}_{}".format(a, b) for a, b in zip(self.meta_data.symbols, key))
+                os.makedirs(os.path.join(self.task_dir, "reports"), exist_ok=True)
+                report_path = os.path.join(self.task_dir, "reports", report_name + ".txt")
+                with open(os.path.join(self.task_dir, "candidates.json"), "r") as f:
                     candidates_json = json.load(f)
-                    headers: List[str] = candidates_json['headers']
-                    candidate_lines: List[List[str]] = candidates_json['candidates']
-                headers.extend(['latency', 'rank'])
+                    headers: List[str] = candidates_json["headers"]
+                    candidate_lines: List[List[str]] = candidates_json["candidates"]
+                headers.extend(["latency", "rank"])
                 sorted_indices = sorted(range(len(latencies)), key=lambda i: latencies[i])
                 for idx, line in enumerate(candidate_lines):
-                    line.extend(['{:.3f} ms'.format(latencies[idx]), sorted_indices.index(idx)])
+                    line.extend(["{:.3f} ms".format(latencies[idx]), sorted_indices.index(idx)])
                 candidate_lines.sort(key=lambda l: l[-1])
-                with open(report_path, 'w') as f:
-                    f.write(tabulate.tabulate(candidate_lines, headers=headers, tablefmt='plain'))
+                with open(report_path, "w") as f:
+                    f.write(tabulate.tabulate(candidate_lines, headers=headers, tablefmt="plain"))
             else:
                 assert len(self.candidates) == 1
                 self.dispatch_table[key] = 0
 
             # write the best candidate to dispatch table
-            dispatch_table_path = os.path.join(self.task_dir, 'dispatch_table.txt')
+            dispatch_table_path = os.path.join(self.task_dir, "dispatch_table.txt")
             if not os.path.exists(dispatch_table_path):
-                with open(dispatch_table_path, 'w') as f:
-                    f.write(' '.join(self.meta_data.symbols) + '\n')
-            with open(dispatch_table_path, 'a') as f:
-                f.write(' '.join([str(v) for v in key]) + ' ' + str(self.dispatch_table[key]) + '\n')
+                with open(dispatch_table_path, "w") as f:
+                    f.write(" ".join(self.meta_data.symbols) + "\n")
+            with open(dispatch_table_path, "a") as f:
+                f.write(" ".join([str(v) for v in key]) + " " + str(self.dispatch_table[key]) + "\n")
 
         candidate_index = self.dispatch_table[key]
         if candidate_index >= len(self.candidates):
-            raise RuntimeError(f'Invalid candidate index: {candidate_index}')
+            raise RuntimeError(f"Invalid candidate index: {candidate_index}")
         return candidate_index
 
     def run_async(self, inputs):
@@ -293,7 +294,7 @@ def load_compiled_task(compiled_task_dir: str) -> CompiledTask:
     return CompiledTask(compiled_task_dir)
 
 
-CompiledTaskKey = namedtuple('CompiledTaskKey', ['device', 'space', 'task_str'])
+CompiledTaskKey = namedtuple("CompiledTaskKey", ["device", "space", "task_str"])
 
 
 class CompiledTaskCache:
@@ -321,7 +322,10 @@ def _check_inputs(traced_inputs: Iterable[TensorSignature], inputs):
 
     symbol_map = {}
     for i, (traced, new) in enumerate(zip(traced_inputs, inputs)):
-        traced_dev_kind = traced.device.partition(':')[0]
+        traced_dev_kind = traced.device.partition(":")[0]
+        if isinstance(new, list):
+            print(new)
+            print(inputs)
         if traced_dev_kind != new.device.target:
             raise RuntimeError(
                 f"device mismatch at arg {i} between original: {traced.device} and new: {new.device.kind}"
@@ -337,8 +341,8 @@ def _check_inputs(traced_inputs: Iterable[TensorSignature], inputs):
         for j, (orig_shape, new_shape) in enumerate(zip(traced_shape, concrete_shape)):
             if isinstance(orig_shape, int) and orig_shape != new_shape:
                 raise RuntimeError(
-                    f'shape mismatch at dimension {j}, original: \
-                                    {orig_shape} vs. new: {new_shape}'
+                    f"shape mismatch at dimension {j}, original: \
+                                    {orig_shape} vs. new: {new_shape}"
                 )
             elif orig_shape not in symbol_map:
                 symbol_map[orig_shape] = new_shape

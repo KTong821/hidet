@@ -1,6 +1,6 @@
-from typing import Any, Dict
+from typing import Any
 
-from hidet.apps.registry import ModuleType, Registry
+from hidet.apps.registry import Registry
 from hidet.graph.tensor import Tensor
 
 
@@ -10,6 +10,3 @@ class BaseProcessor(Registry):
 
     def preprocess(self, data: Any, **kwargs) -> Tensor:
         raise NotImplementedError("Processors should implement their own preprocess step.")
-
-
-

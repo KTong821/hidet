@@ -1,28 +1,33 @@
-from typing import Any, Optional
+from typing import Optional
 from hidet.apps import hf
 from hidet.apps.image_classification.builder import create_image_classifier, create_image_processor
 from hidet.apps.image_classification.processing.image_processor import BaseImageProcessor, ChannelDimension, ImageInput
 from hidet.apps.pipeline import Pipeline
-from hidet.graph.ops import softmax
-from hidet.graph.ops.reduce.reduce import argmax
 from hidet.graph.tensor import Tensor
+import nvtx
 
 
 class ImageClassificationPipeline(Pipeline):
-
-    def __init__(self, name: str, revision: Optional[str] = None, pre_processor: Optional[BaseImageProcessor] = None, dtype: str = "float32", device: str = "cuda"):
+    def __init__(
+        self,
+        name: str,
+        revision: Optional[str] = None,
+        batch_size: int = 1,
+        pre_processor: Optional[BaseImageProcessor] = None,
+        dtype: str = "float32",
+        device: str = "cuda",
+        kernel_search_space: int = 2,
+    ):
         if pre_processor is None:
             image_processor = create_image_processor(name, revision)
         else:
             image_processor = pre_processor
         super().__init__(name, revision, image_processor)
 
-        self.model = create_image_classifier(name, revision, dtype, device)
+        self.model = create_image_classifier(name, revision, dtype, device, batch_size, kernel_search_space)
         self.config = hf.load_pretrained_config(name, revision)
-        
-    def __call__(
-        self, images: ImageInput, **kwargs
-    ):
+
+    def __call__(self, images: ImageInput, **kwargs):
         """
         Run through image classification pipeline end to end.
 
@@ -39,19 +44,22 @@ class ImageClassificationPipeline(Pipeline):
             Return scores for top k results
         """
         return super().__call__(images, **kwargs)
-    
+
     def preprocess(self, images: ImageInput, input_data_format: ChannelDimension, **kwargs):
         # TODO accept inputs other than ImageInput type, e.g. url or dataset
+        with nvtx.annotate("preprocess data", color="orange"):
+            return self.pre_processor(images, input_data_format=input_data_format, **kwargs)
 
-        return self.pre_processor(images, input_data_format=input_data_format, **kwargs)
-    
     def postprocess(self, model_outputs: Tensor, top_k: int = 5, **kwargs):
-        top_k = min(top_k, self.config.num_labels)
-        torch_outputs = model_outputs.torch()
-        values, indices = torch_outputs.topk(top_k, sorted=False)
-        labels = [[self.config.id2label[int(x.item())] for x in t] for t in indices]
-        return [[{"label": label, "score": value.item()} for label, value in zip(a, b)] for a, b in zip(labels, values)]
-    
-    def forward(self, model_inputs: Tensor, **kwargs) -> Tensor:
-        return self.model.classify([model_inputs])[0]
+        with nvtx.annotate("postprocess data", color="green"):
+            top_k = min(top_k, self.config.num_labels)
+            torch_outputs = model_outputs.torch()
+            values, indices = torch_outputs.topk(top_k, sorted=False)
+            labels = [[self.config.id2label[int(x.item())] for x in t] for t in indices]
+            return [
+                [{"label": label, "score": value.item()} for label, value in zip(a, b)] for a, b in zip(labels, values)
+            ]
 
+    def forward(self, model_inputs: Tensor, **kwargs) -> Tensor:
+        with nvtx.annotate("model run", color="rapids"):
+            return self.model.classify([model_inputs])[0]
