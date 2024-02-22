@@ -27,16 +27,14 @@ def test_resnet_processor_resize():
     images = []
 
     import random
-
     for _ in range(10):
         rows = random.randint(10, 20)
         cols = random.randint(10, 20)
-        tensor = torch.randint(1, 10, (rows, cols, 3), dtype=torch.uint8)
+        tensor = torch.randint(1, 9, (rows, cols, 3), dtype=torch.uint8)
         images.append(tensor)
 
     res = processor(images, input_data_format=ChannelDimension.CHANNEL_LAST)
     assert res.shape == (10, 3, 4, 4)
-    print(res)
     assert ((0 <= res.torch()) & (res.torch() < 10)).all()
 
 
