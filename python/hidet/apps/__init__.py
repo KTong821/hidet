@@ -11,4 +11,6 @@
 # limitations under the License.
 
 from .pretrained import PretrainedModel
+from .pipeline import Pipeline
+from .processing import BaseProcessor
 from .registry import Registry, RegistryEntry

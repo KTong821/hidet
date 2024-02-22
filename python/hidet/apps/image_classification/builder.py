@@ -49,8 +49,4 @@ def create_image_processor(name: str, revision: Optional[str] = None, **kwargs) 
 
     processor = BaseImageProcessor.load_module(config, module_type=ModuleType.PROCESSING)
 
-    return ResNet(
-        compiled_app=create_compiled_app(
-            graphs={"resnet": compiled_graph}, name=name
-        )
-    )
+    return processor(**kwargs)
