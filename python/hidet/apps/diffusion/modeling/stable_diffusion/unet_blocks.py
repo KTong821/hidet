@@ -95,7 +95,6 @@ class CrossAttnDownBlock2D(PretrainedModel):
 
         for i in range(num_layers):
             input_channels = kwargs["input_channels"] if i == 0 else kwargs["output_channels"]
-            print(f"in chan {input_channels}")
             resnets.append(ResnetBlock2D(**{"input_channels": input_channels, **kwargs}))
 
         self.resnets = nn.ModuleList(resnets)
