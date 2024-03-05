@@ -1,4 +1,4 @@
-from typing import Generic, List, Set
+from typing import Generic, List, Set, Dict, Union
 
 import torch
 from hidet.apps.registry import Registry
@@ -9,7 +9,7 @@ from transformers import PretrainedConfig
 
 
 class PretrainedModel(nn.Module[R], Registry, Generic[R]):
-    def __init__(self, config: PretrainedConfig):
+    def __init__(self, config: Union[PretrainedConfig, Dict]):
         super().__init__()
         self.config = config
 
@@ -20,9 +20,14 @@ class PretrainedModel(nn.Module[R], Registry, Generic[R]):
     def copy_weights(cls, torch_model: torch.nn.Module, hidet_model: nn.Module):
         found_tensors: List[Tensor] = []
         for name, tensor in torch_model.state_dict().items():
+            print(f"copy {name}")
             member = hidet_model
-            for m_name in name.split("."):
-                member = getattr(member, m_name)
+            try:
+                for m_name in name.split("."):
+                    member = getattr(member, m_name)
+            except Exception as e:
+                print(f"err {e}")
+                continue
 
             if not isinstance(member, Tensor):
                 raise ValueError(
@@ -51,3 +56,7 @@ class PretrainedModel(nn.Module[R], Registry, Generic[R]):
             return str(config.torch_dtype).split(".")[-1]
         else:
             return default
+        
+    @classmethod
+    def create_pretrained_model(cls, *args, **kwargs):
+        raise NotImplementedError()

@@ -61,3 +61,12 @@ class BaseModelOutputWithPooling(BaseModelOutput):
 @dataclass
 class ImageClassifierOutput(BaseModelOutputWithPooling):
     logits: Tensor
+
+
+@dataclass
+class DiffusionOutput(BaseModelOutput):
+    pass
+
+@dataclass
+class UNet2DConditionOutput(BaseModelOutput):
+    pass

@@ -4,8 +4,6 @@ from dataclasses import astuple, dataclass
 from enum import Enum
 from typing import Dict
 
-from transformers import PretrainedConfig
-
 
 @dataclass
 class RegistryEntry:
@@ -51,20 +49,14 @@ class Registry:
     module_registry: Dict[ModuleType, Dict[str, RegistryEntry]] = defaultdict(dict)
 
     @classmethod
-    def load_module(cls, config: PretrainedConfig, module_type: ModuleType = ModuleType.MODEL):
-        architectures = getattr(config, "architectures")
-        if not architectures:
-            raise ValueError(f"Config {config.name_or_path} has no architecture.")
-
-        # assume only 1 architecture available for now
-        architecture = architectures[0]
-        if architecture not in cls.module_registry[module_type]:
+    def load_module(cls, arch: str, module_type: ModuleType = ModuleType.MODEL):
+        if arch not in cls.module_registry[module_type]:
             raise KeyError(
-                f"No {module_type.value} class with architecture {architecture} found."
+                f"No {module_type.value} class with architecture {arch} found.\n"
                 f"Registered {module_type.value} architectures: {', '.join(cls.module_registry[module_type].keys())}."
             )
 
-        model_category, module_name, klass = astuple(cls.module_registry[module_type][architecture])
+        model_category, module_name, klass = astuple(cls.module_registry[module_type][arch])
 
         module = importlib.import_module(f"hidet.apps.{model_category}.{module_type.value}.{module_name}")
 

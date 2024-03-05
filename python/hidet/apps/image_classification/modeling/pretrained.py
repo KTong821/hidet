@@ -15,11 +15,14 @@ class PretrainedModelForImageClassification(PretrainedModel[ImageClassifierOutpu
         cls, config: PretrainedConfig, revision: Optional[str] = None, dtype: Optional[str] = None, device: str = "cuda"
     ):
         # dynamically load model subclass
-        pretrained_model_class = cls.load_module(config)
+        architectures = getattr(config, "architectures")
+        if not architectures:
+            raise ValueError(f"Config {config.name_or_path} has no architecture.")
+        pretrained_model_class = cls.load_module(architectures[0])
 
-        # load the pretrained huggingface model into cpu
+        # load the pretrained huggingface model
+        huggingface_token = hidet.option.get_option("auth_tokens.for_huggingface")
         with torch.device("cuda"):  # reduce the time to load the model
-            huggingface_token = hidet.option.get_option("auth_tokens.for_huggingface")
             torch_model: TransformersPretrainedModel = AutoModelForImageClassification.from_pretrained(
                 pretrained_model_name_or_path=config.name_or_path,
                 torch_dtype=torch.float32,
