@@ -8,11 +8,7 @@ from hidet.graph.ops import exp, expand_dims, concat, sin, cos, pad
 
 class TimestepEmbedding(nn.Module[Tensor]):
     def __init__(
-        self,
-        in_channels: int,
-        time_embed_dim: int,
-        act_fn: Callable[[Tensor], Tensor],
-        out_dim: Optional[int] = None,
+        self, in_channels: int, time_embed_dim: int, act_fn: Callable[[Tensor], Tensor], out_dim: Optional[int] = None
     ):
         super().__init__()
         self.linear_1 = nn.Linear(in_channels, time_embed_dim)
@@ -31,16 +27,14 @@ class TimestepEmbedding(nn.Module[Tensor]):
         sample = self.linear_2(sample)
         return sample
 
+
 class Timesteps(nn.Module[Tensor]):
-    def __init__(
-        self, num_channels: int, flip_sin_to_cos: int, downscale_freq_shift: float = 0
-    ):
+    def __init__(self, num_channels: int, flip_sin_to_cos: int, downscale_freq_shift: float = 0):
         super().__init__()
 
         self.num_channels = num_channels
         self.flip_sin_to_cos = flip_sin_to_cos
         self.downscale_freq_shift = downscale_freq_shift
-
 
     # TODO: substantially the same as LlamaRotaryEmbedding, except timesteps can be any arithmetic sequence
     # not necessarily arange with common difference 1. So caching not effective.
