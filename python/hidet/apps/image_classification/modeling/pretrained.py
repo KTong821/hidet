@@ -9,7 +9,7 @@ from hidet.apps.pretrained import PretrainedModel
 import hidet
 
 
-class PretrainedModelForImageClassification(PretrainedModel[ImageClassifierOutput]):
+class PretrainedModelForImageClassification(PretrainedModel):
     @classmethod
     def create_pretrained_model(
         cls, config: PretrainedConfig, revision: Optional[str] = None, dtype: Optional[str] = None, device: str = "cuda"
@@ -37,3 +37,6 @@ class PretrainedModelForImageClassification(PretrainedModel[ImageClassifierOutpu
         cls.copy_weights(torch_model, hidet_model)
 
         return hidet_model
+
+    def forward(self, *args, **kwargs) -> ImageClassifierOutput:
+        raise NotImplementedError()

@@ -6,7 +6,6 @@ from hidet.option import get_option
 from transformers import AutoModelForImageClassification, PretrainedConfig, ResNetConfig
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name, dtype",
     [
@@ -19,7 +18,6 @@ def test_parse_dtype(model_name: str, dtype: str):
     assert PretrainedModel.parse_dtype(config) == dtype
 
 
-@pytest.mark.slow
 def test_copy_weights():
 
     with torch.device("cuda"):
